@@ -7,14 +7,58 @@ class FormInput extends HTMLElement {
 
     this._shadowRoot = this.attachShadow({ mode: 'open' });
     this._style = document.createElement('style');
-  }
-
-  _emptyContent() {
-    this._shadowRoot.innerHTML = '';
+    this._shadowRoot.appendChild(this._style);
+    this.render();
   }
 
   connectedCallback() {
-    this.render();
+    const unfilledForm = this._shadowRoot.querySelector('form');
+    const titleInput = unfilledForm.elements.title;
+    const bodyInput = unfilledForm.elements.body; 
+    
+    unfilledForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+
+      const title = titleInput.value;
+      const body = bodyInput.value;
+
+      this.dispatchEvent(new CustomEvent('submit', { detail: {title, body} }));
+
+      unfilledForm.reset();
+    });
+
+    const customValidationInputHandler = (event) => {
+      event.target.setCustomValidity('');
+    
+      if (event.target.validity.valueMissing) {
+        event.target.setCustomValidity('Harus diisi.');
+        return;
+      }
+    };
+
+    titleInput.addEventListener('input', customValidationInputHandler);
+    titleInput.addEventListener('invalid', customValidationInputHandler);
+
+    bodyInput.addEventListener('input', customValidationInputHandler);
+    bodyInput.addEventListener('invalid', customValidationInputHandler);
+
+    titleInput.addEventListener('blur', () => this.updateValidationMessage(titleInput));
+    bodyInput.addEventListener('blur', () => this.updateValidationMessage(bodyInput));
+  }
+
+  updateValidationMessage(input) {
+    const isValid = input.validity.valid;
+    const errorMessage = input.validationMessage;
+    
+    const connectedValidationId = input.getAttribute('aria-describedby');
+    const connectedValidationEl = connectedValidationId ?
+      document.getElementById(connectedValidationId) : null;
+  
+    if (connectedValidationEl && errorMessage && !isValid) {
+      connectedValidationEl.innerText = errorMessage;
+    } else {
+      connectedValidationEl.innerText = '';
+    }
   }
 
   _updateStyle() {
@@ -113,10 +157,8 @@ class FormInput extends HTMLElement {
   }
 
   render() {
-    this._emptyContent();
     this._updateStyle();
 
-    this._shadowRoot.appendChild(this._style);
     this._shadowRoot.innerHTML += `
       <form id="formNote">
         <h2>Tambahkan Catatan Baru</h2>
