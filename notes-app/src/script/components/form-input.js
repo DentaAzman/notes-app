@@ -1,6 +1,8 @@
 class FormInput extends HTMLElement {
   _shadowRoot = null;
   _style = null;
+  _titleValidation = null;
+  _bodyValidation = null;
 
   constructor() {
     super();
@@ -14,8 +16,26 @@ class FormInput extends HTMLElement {
   connectedCallback() {
     const unfilledForm = this._shadowRoot.querySelector('form');
     const titleInput = unfilledForm.elements.title;
-    const bodyInput = unfilledForm.elements.body; 
+    const bodyInput = unfilledForm.elements.body;
+
+    const customValidationInputHandler = (event) => {
+      event.target.setCustomValidity('');
     
+      if (event.target.validity.valueMissing) {
+        event.target.setCustomValidity('Harus diisi.');
+        return;
+      }
+    };
+    
+    titleInput.addEventListener('input', customValidationInputHandler);
+    titleInput.addEventListener('invalid', customValidationInputHandler);
+
+    bodyInput.addEventListener('input', customValidationInputHandler);
+    bodyInput.addEventListener('invalid', customValidationInputHandler);
+
+    titleInput.addEventListener('blur', () => this.updateValidationMessage(titleInput, this._titleValidation));
+    bodyInput.addEventListener('blur', () => this.updateValidationMessage(bodyInput, this._bodyValidation));
+
     unfilledForm.addEventListener('submit', (event) => {
       event.preventDefault();
 
@@ -26,38 +46,16 @@ class FormInput extends HTMLElement {
 
       unfilledForm.reset();
     });
-
-    const customValidationInputHandler = (event) => {
-      event.target.setCustomValidity('');
-    
-      if (event.target.validity.valueMissing) {
-        event.target.setCustomValidity('Harus diisi.');
-        return;
-      }
-    };
-
-    titleInput.addEventListener('input', customValidationInputHandler);
-    titleInput.addEventListener('invalid', customValidationInputHandler);
-
-    bodyInput.addEventListener('input', customValidationInputHandler);
-    bodyInput.addEventListener('invalid', customValidationInputHandler);
-
-    titleInput.addEventListener('blur', () => this.updateValidationMessage(titleInput));
-    bodyInput.addEventListener('blur', () => this.updateValidationMessage(bodyInput));
   }
 
-  updateValidationMessage(input) {
+  updateValidationMessage(input, validationMessageElement) {
     const isValid = input.validity.valid;
     const errorMessage = input.validationMessage;
-    
-    const connectedValidationId = input.getAttribute('aria-describedby');
-    const connectedValidationEl = connectedValidationId ?
-      document.getElementById(connectedValidationId) : null;
   
-    if (connectedValidationEl && errorMessage && !isValid) {
-      connectedValidationEl.innerText = errorMessage;
+    if (errorMessage && !isValid) {
+      validationMessageElement.innerText = errorMessage;
     } else {
-      connectedValidationEl.innerText = '';
+      validationMessageElement.innerText = '';
     }
   }
 
@@ -190,6 +188,9 @@ class FormInput extends HTMLElement {
         </div>
       </form>
     `;
+
+    this._titleValidation = this._shadowRoot.getElementById('titleValidation');
+    this._bodyValidation = this._shadowRoot.getElementById('bodyValidation');
   }
 }
 
